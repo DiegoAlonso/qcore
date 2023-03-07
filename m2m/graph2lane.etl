@@ -1,0 +1,88 @@
+@primary
+rule Circuit
+transform f:In!Circuit
+to t:Out!Circuit {
+	t.comment=f.comment;
+	t.nodes::=f.nodes;
+	t.qubits::=f.qubits;
+	t.edges::=f.edges;
+	var controls = In!Control.allInstances();
+	for (c in controls)
+		t.nodes.add(c.equivalent());
+}
+
+rule SimpleNode
+transform f:In!Node
+to t:Out!Node {
+guard: f.gates.size()<=1
+	t.name=f.name;
+	t.gates::=f.gates;
+}
+
+rule ControlledNode
+transform f:In!Node
+to t:Out!Node {
+guard: f.gates.size()>1
+    var the_gate ::= f.gates->selectOne(g | not g.isTypeOf(In!Control));
+	t.name=f.name;
+	t.gates.add(the_gate);
+} 
+
+rule Qubit
+transform f:In!Qubit
+to t:Out!Qubit { t.name=f.name; }
+
+rule X
+transform f:In!X
+to t:Out!X { t.qubit::=f.qubit; }
+
+rule H
+transform f:In!H
+to t:Out!H { t.qubit::=f.qubit; }
+
+rule Control
+transform f:In!Control
+to n:Out!Node,
+   t:Out!Control    {
+    t.qubit::=f.qubit; 
+	t.controlGate::=f.controlGate;
+	n.name=t.qubit.name+"_";
+	n.gates.add(t);
+}
+
+rule Edge
+transform f:In!Edge
+to t:Out!Edge {
+guard: not (f.src.gates.size()>1 and f.dst.gates.size()>1)
+    if (f.dst.gates.size()>1) { 
+    	t.src::=f.src; 
+    	var qubit = f.src.gates.first().qubit;
+    	var dst_gate = f.dst.gates->selectOne(g | g.qubit=qubit);
+    	if (dst_gate.isTypeOf(In!Control)) { t.dst=dst_gate.equivalent(); }
+    	else { t.dst::=f.dst; }
+    } else {
+    	t.dst::=f.dst;
+    	var qubit = f.dst.gates.first().qubit;
+    	var src_gate = f.src.gates->selectOne(g | g.qubit=qubit);
+    	if (src_gate.isTypeOf(In!Control)) { t.src=src_gate.equivalent(); }
+    	else { t.src::=f.src; }
+    }
+}
+
+post {
+	var complex_edges=In!Edge.allInstances()->select(e | e.src.gates.size()>1 and e.dst.gates.size()>1);
+	for (c in complex_edges) {
+		for (sg in c.src.gates) {
+			var g_same_qubit = c.dst.gates->selectOne(g | g.qubit=sg.qubit);
+			if (g_same_qubit.isDefined()) {
+				var E : new Out!Edge;
+				if (sg.isTypeOf(In!Control)) { E.src=sg.equivalent(); }
+				else { E.src ::= c.src; }
+				if (g_same_qubit.isTypeOf(In!Control)) { E.dst=g_same_qubit.equivalent(); }
+				else { E.dst ::= c.dst; }
+				Out!Circuit.allInstances().first().edges.add(E);	
+			}
+		}
+	}
+}
+

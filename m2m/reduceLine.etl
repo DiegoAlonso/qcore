@@ -1,0 +1,42 @@
+@primary
+rule Circuit
+transform f:In!Circuit
+to t:Out!Circuit {
+	t.comment=f.comment;
+	t.qubits::=f.qubits;
+	var node = f.nodes->selectOne (n | n.incoming.isEmpty());
+	t.nodes.add(node.equivalent());	
+	while (not node.outgoing.isEmpty()) {
+		node = node.outgoing.first().dst;
+		t.nodes.add(node.equivalent());
+	}
+}
+
+rule Qubit
+transform f:In!Qubit
+to t:Out!Qubit { t.name=f.name; }
+
+rule Node
+transform f:In!Node
+to t:Out!Node {
+	t.name=f.name;
+	t.gates::=f.gates;
+}
+
+rule X
+transform f:In!X
+to t:Out!X { t.qubit::=f.qubit; }
+
+rule H
+transform f:In!H
+to t:Out!H { t.qubit::=f.qubit; }
+
+rule Control
+transform f:In!Control
+to  t:Out!Control    {
+    t.qubit::=f.qubit; 
+	t.controlGate::=f.controlGate;
+}
+
+
+
