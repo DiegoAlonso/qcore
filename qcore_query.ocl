@@ -1,0 +1,42 @@
+context Node::totalEdgesCount() : Integer
+body: self.incoming.size() + self.outgoing.size()
+
+context Node::hasControlledGate() : Boolean
+body: self.gates.size() > 1
+
+context Node::hasMultipleNonControlGates() : Boolean
+body: (self.gates -> select (g | not g.isTypeOf(Control))).size() > 1
+
+// -1: error  
+// 1:slice, 2: linear, 3: swim-lane, 4: mixed swimlane, 5: mixed linear
+context Circuit::kindOfStrategy() : Integer
+body: 
+  if (self.nodes -> forAll(n | n.totalEdgesCount()<=2)) then 
+    if (self.nodes -> exists(n | n.hasMultipleNonControlGates())) then 1 
+    else 
+      if (self.nodes -> exists(n | n.hasControlledGate())) then 5 
+      else 2 
+      endif
+    endif
+  else 
+    if (self.nodes-> exists(n | n.hasMultipleNonControlGates())) then -1 
+    else
+      if (self.nodes -> exists(n | n.hasControlledGate())) then 4 
+      else 3 
+      endif
+    endif
+  endif
+  
+
+// 0: none, 1:slice, 2: linear, 3: swim-lane, 5: mixed linear
+context Circuit::whichReducedStrategy() : Integer
+body:    
+  if (self.qubits -> forAll(q | q.gates.isEmpty())) then
+    if (self.nodes -> exists(n | n.hasMultipleNonControlGates())) then 1 
+    else
+      if (self.nodes -> exists(n | n.hasControlledGate())) then 5
+      else 2 
+      endif
+    endif
+  else 3 
+  endif
