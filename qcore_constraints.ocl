@@ -1,0 +1,20 @@
+context Node inv GatesOperateOnDifferentQubits:
+   self.gates -> forAll(g1, g2 | g1<>g2 implies g1.qubit <> g2.qubit)	
+
+context Control inv OperatesOnADifferentQubitThanControlledGate:
+   self.qubit <> self.controlGate.qubit
+
+context Control inv CannotControlAnotherControlGate:
+   not self.controlGate.isTypeOf(Control)
+
+context Node inv AllControlSameNode:
+   if (self.gates.size() > 1) then
+     self.gates -> select(g | g.isTypeOf(Control)) -> forAll (g | self.gates -> includes(g.controlGate))
+   else true
+   endif
+
+context Circuit inv Edges_QubitsContainGates:
+   not self.edges.isEmpty() and self.qubits -> exists (q | not q.gates.isEmpty())
+
+context Circuit inv NotAllCollectionsEmpty:
+   not self.edges.isEmpty() or not self.nodes.isEmpty() or self.qubits-> exists (q | not q.gates.isEmpty())
