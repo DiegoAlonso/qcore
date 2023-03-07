@@ -18,3 +18,13 @@ context Circuit inv Edges_QubitsContainGates:
 
 context Circuit inv NotAllCollectionsEmpty:
    not self.edges.isEmpty() or not self.nodes.isEmpty() or self.qubits-> exists (q | not q.gates.isEmpty())
+
+
+context Edge inv NoSelfLoop:
+   self.src <> self.dst
+
+context Node inv HasToBeConnected:
+   self.incoming.size() + self.outgoing.size() > 0
+   
+context Circuit inv AllEdgesDifferentNodes:
+   self.edges -> forAll (e1, e2 | e1<>e2 implies (e1.src<>e2.src and e1.dst<>e2.dst) )
